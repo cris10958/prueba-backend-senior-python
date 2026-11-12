@@ -1,13 +1,33 @@
-"""
-SQLAlchemy models.
+from datetime import datetime, timezone
 
-TODO: Define the Application model here.
+from sqlalchemy import JSON, DateTime, Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column
 
-Hint: needs to persist enough info to answer GET /applications/{id}, including
-the original input, the decision (APPROVED / REJECTED) and the rejection
-reasons when applicable.
-"""
+from app.database import Base
+from app.enums import ApplicationStatus, Product
 
-from app.database import Base  # noqa: F401
 
-# Your models here...
+class Application(Base):
+    """Solicitud de crédito con el resultado de su evaluación."""
+
+    __tablename__ = "applications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # Datos de la solicitud
+    amount: Mapped[int]
+    monthly_income: Mapped[int]
+    employment_months: Mapped[int]
+    external_score: Mapped[int]
+    product: Mapped[Product] = mapped_column(SAEnum(Product))
+
+    # Resultado de la evaluación
+    status: Mapped[ApplicationStatus] = mapped_column(SAEnum(ApplicationStatus))
+    rejection_reasons: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    # Trazabilidad: permite saber con qué criterio se evaluó cada solicitud
+    # si los umbrales cambian
+    policy_name: Mapped[str]
+    evaluated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
